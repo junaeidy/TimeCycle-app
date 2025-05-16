@@ -1,3 +1,5 @@
+import { Button } from "@heroui/react";
+
 export default function SecondaryButton({
     type = 'button',
     className = '',
@@ -6,7 +8,7 @@ export default function SecondaryButton({
     ...props
 }) {
     return (
-        <button
+        <Button
             {...props}
             type={type}
             className={
@@ -17,6 +19,6 @@ export default function SecondaryButton({
             disabled={disabled}
         >
             {children}
-        </button>
+        </Button>
     );
 }
