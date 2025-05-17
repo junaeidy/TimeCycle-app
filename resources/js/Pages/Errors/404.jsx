@@ -1,5 +1,5 @@
 import { Head, Link } from "@inertiajs/react";
-import ApplicationLogo from "@/Components/ApplicationLogo";
+import ApplicationLogo from "@/Components/UI/ApplicationLogo";
 
 export default function NotFound() {
     return (

@@ -1,10 +1,10 @@
-import InputError from "@/Components/InputError";
-import PrimaryButton from "@/Components/PrimaryButton";
-import TextInput from "@/Components/TextInput";
+import InputError from "@/Components/UI/InputError";
+import PrimaryButton from "@/Components/UI/PrimaryButton";
+import TextInput from "@/Components/UI/TextInput";
 import GuestLayout from "@/Layouts/GuestLayout";
-import ApplicationLogo from "@/Components/ApplicationLogo";
+import ApplicationLogo from "@/Components/UI/ApplicationLogo";
 import { Head, Link, useForm } from "@inertiajs/react";
-import InputLabel from "@/Components/InputLabel";
+import InputLabel from "@/Components/UI/InputLabel";
 
 export default function ForgotPassword({ status }) {
     const { data, setData, post, processing, errors } = useForm({

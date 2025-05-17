@@ -1,9 +1,9 @@
-import InputError from "@/Components/InputError";
-import PrimaryButton from "@/Components/PrimaryButton";
-import TextInput from "@/Components/TextInput";
-import ApplicationLogo from "@/Components/ApplicationLogo";
+import InputError from "@/Components/UI/InputError";
+import PrimaryButton from "@/Components/UI/PrimaryButton";
+import TextInput from "@/Components/UI/TextInput";
+import ApplicationLogo from "@/Components/UI/ApplicationLogo";
 import { Head, useForm } from "@inertiajs/react";
-import InputLabel from "@/Components/InputLabel";
+import InputLabel from "@/Components/UI/InputLabel";
 
 export default function ResetPassword({ token, email: defaultEmail }) {
     const { data, setData, post, processing, errors } = useForm({
