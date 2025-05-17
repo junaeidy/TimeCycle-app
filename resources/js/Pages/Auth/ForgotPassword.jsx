@@ -1,18 +1,19 @@
-import InputError from '@/Components/InputError';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import { Head, Link, useForm } from '@inertiajs/react';
+import InputError from "@/Components/InputError";
+import PrimaryButton from "@/Components/PrimaryButton";
+import TextInput from "@/Components/TextInput";
+import GuestLayout from "@/Layouts/GuestLayout";
+import ApplicationLogo from "@/Components/ApplicationLogo";
+import { Head, Link, useForm } from "@inertiajs/react";
+import InputLabel from "@/Components/InputLabel";
 
 export default function ForgotPassword({ status }) {
     const { data, setData, post, processing, errors } = useForm({
-        email: '',
+        email: "",
     });
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('password.email'));
+        post(route("password.email"));
     };
 
     return (
@@ -25,7 +26,7 @@ export default function ForgotPassword({ status }) {
                     className="hidden md:flex flex-1 items-center justify-center bg-cover bg-center p-8"
                     style={{
                         backgroundImage:
-                            'url(https://images.pexels.com/photos/3183183/pexels-photo-3183183.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1)',
+                            "url(https://images.pexels.com/photos/3183183/pexels-photo-3183183.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1)",
                     }}
                 >
                     <div className="text-white text-center max-w-md bg-black/40 p-6 rounded-xl">
@@ -33,7 +34,8 @@ export default function ForgotPassword({ status }) {
                             Forgot your password?
                         </h1>
                         <p className="text-lg">
-                            No worries! Enter your email and we’ll send a link to reset it.
+                            No worries! Enter your email and we’ll send a link
+                            to reset it.
                         </p>
                     </div>
                 </div>
@@ -56,6 +58,7 @@ export default function ForgotPassword({ status }) {
 
                         <form onSubmit={submit} className="space-y-6">
                             <div>
+                                <InputLabel value="Email" />
                                 <TextInput
                                     id="email"
                                     type="email"
@@ -64,12 +67,21 @@ export default function ForgotPassword({ status }) {
                                     className="mt-1 block w-full"
                                     isFocused={true}
                                     autoComplete="email"
-                                    onChange={(e) => setData('email', e.target.value)}
+                                    onChange={(e) =>
+                                        setData("email", e.target.value)
+                                    }
                                 />
-                                <InputError message={errors.email} className="mt-2" />
+                                <InputError
+                                    message={errors.email}
+                                    className="mt-2"
+                                />
                             </div>
 
-                            <PrimaryButton type="submit" className="w-full justify-center" disabled={processing}>
+                            <PrimaryButton
+                                type="submit"
+                                className="w-full justify-center"
+                                disabled={processing}
+                            >
                                 Send Password Reset Link
                             </PrimaryButton>
                         </form>
@@ -77,7 +89,7 @@ export default function ForgotPassword({ status }) {
                         {/* Link back to login */}
                         <div className="mt-6 text-center">
                             <Link
-                                href={route('login')}
+                                href={route("login")}
                                 className="text-sm text-indigo-600 hover:text-indigo-800 underline dark:text-indigo-400 dark:hover:text-indigo-300"
                             >
                                 Back to Login
