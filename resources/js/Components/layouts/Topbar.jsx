@@ -15,7 +15,6 @@ export default function Topbar() {
   const [showNotif, setShowNotif] = useState(false);
   const notifRef = useRef();
 
-  // ⛔ Klik luar dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notifRef.current && !notifRef.current.contains(event.target)) {
@@ -79,10 +78,14 @@ export default function Topbar() {
           <Dropdown.Trigger>
             <button className="inline-flex items-center rounded-full focus:outline-none">
               <img
-                src={user.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`}
-                alt="User"
-                className="w-8 h-8 rounded-full object-cover"
-              />
+        src={
+          user.profile_photo_path
+            ? `/storage/${user.profile_photo_path}`
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`
+        }
+        alt="User"
+        className="w-8 h-8 rounded-full object-cover"
+      />
               <svg
                 className="ms-2 h-4 w-4 text-gray-500"
                 xmlns="http://www.w3.org/2000/svg"
