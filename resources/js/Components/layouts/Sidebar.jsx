@@ -15,7 +15,7 @@ const navItems = [
   { name: "Absensi", icon: ClockIcon },
   { name: "Laporan", icon: DocumentTextIcon },
   { name: "Jadwal Kerja", icon: CalendarIcon },
-  { name: "Karyawan", icon: UserGroupIcon },
+  { name: "Karyawan", icon: UserGroupIcon, href: route('employees.index') },
   { name: "Pengaturan", icon: Cog6ToothIcon, href: route('app-setting.show') },
 ];
 

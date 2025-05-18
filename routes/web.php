@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Application;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AppSettingController;
+use App\Http\Controllers\EmployeeController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -22,6 +23,7 @@ Route::middleware('auth', 'admin')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/app-setting', [AppSettingController::class, 'show'])->name('app-setting.show');
     Route::post('/app-setting', [AppSettingController::class, 'update'])->name('app-setting.update');
+    Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
 });
 
 Route::fallback(function () {
