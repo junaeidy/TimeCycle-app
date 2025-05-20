@@ -15,6 +15,7 @@ import {
     Chip,
     User,
     Pagination,
+    Spinner,
 } from "@heroui/react";
 import {
     MagnifyingGlassIcon,
@@ -23,6 +24,8 @@ import {
 import { ChevronDown, Plus } from "lucide-react";
 import AddEmployee from "./AddEmployee";
 import Modal from "@/Components/UI/Modal";
+import toast from "react-hot-toast";
+import axios from "axios";
 
 export const columns = [
     { name: "NIK", uid: "nik", sortable: true },
@@ -41,59 +44,6 @@ export const statusOptions = [
     { name: "Leave", uid: "leave" },
 ];
 
-export const users = [
-    {
-        nik: 1,
-        name: "Tony Reichert",
-        role: "CEO",
-        team: "Management",
-        status: "active",
-        age: "29",
-        avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
-        email: "tony.reichert@example.com",
-    },
-    {
-        nik: 2,
-        name: "Zoey Lang",
-        role: "Tech Lead",
-        team: "Development",
-        status: "paused",
-        age: "25",
-        avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-        email: "zoey.lang@example.com",
-    },
-    {
-        nik: 3,
-        name: "Jane Fisher",
-        role: "Sr. Dev",
-        team: "Development",
-        status: "active",
-        age: "22",
-        avatar: "https://i.pravatar.cc/150?u=a04258114e29026702d",
-        email: "jane.fisher@example.com",
-    },
-    {
-        nik: 4,
-        name: "William Howard",
-        role: "C.M.",
-        team: "Marketing",
-        status: "leave",
-        age: "28",
-        avatar: "https://i.pravatar.cc/150?u=a048581f4e29026701d",
-        email: "william.howard@example.com",
-    },
-    {
-        nik: 5,
-        name: "Kristen Copper",
-        role: "S. Manager",
-        team: "Sales",
-        status: "active",
-        age: "24",
-        avatar: "https://i.pravatar.cc/150?u=a092581d4ef9026700d",
-        email: "kristen.cooper@example.com",
-    },
-];
-
 export function capitalize(s) {
     return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
@@ -107,6 +57,8 @@ const statusColorMap = {
 const INITIAL_VISIBLE_COLUMNS = ["name", "role", "status", "actions"];
 
 export default function EmployeeList() {
+    const [users, setUsers] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [filterValue, setFilterValue] = React.useState("");
     const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
     const [visibleColumns, setVisibleColumns] = React.useState(
@@ -132,7 +84,7 @@ export default function EmployeeList() {
     }, [visibleColumns]);
 
     const filteredItems = React.useMemo(() => {
-        let filteredUsers = [...users];
+        let filteredUsers = users ? [...users] : [];
 
         if (hasSearchFilter) {
             filteredUsers = filteredUsers.filter((user) =>
@@ -170,11 +122,74 @@ export default function EmployeeList() {
         });
     }, [sortDescriptor, items]);
 
-    const handleSubmit = (formData) => {
-        // Kirim ke backend atau update state
-        console.log("Data Karyawan:", formData);
-        setShowAddModal(false);
+    const fetchUsers = async () => {
+        setIsLoading(true);
+        try {
+            const res = await fetch("/api/employees");
+            const data = await res.json();
+
+            const formatted = data.map((user) => ({
+                nik: user.nik,
+                name: user.name,
+                age: getAge(user.date_of_birth),
+                role: user.role?.role_name ?? "-",
+                team: user.position ?? "-",
+                status: user.is_active ? "active" : "paused",
+                avatar: user.profile_photo_path
+                    ? `/storage/${user.profile_photo_path}`
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          user.name
+                      )}`,
+                email: user.email,
+            }));
+
+            setUsers(formatted);
+        } catch (error) {
+            console.error("Gagal fetch data karyawan", error);
+        } finally {
+            setIsLoading(false);
+        }
     };
+
+    React.useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    function getAge(dateString) {
+        const today = new Date();
+        const birthDate = new Date(dateString);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    }
+
+    const handleAddEmployee = async (data) => {
+    try {
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== null && value !== "") {
+                formData.append(key, value);
+            }
+        });
+
+        await axios.post("/api/employees", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        fetchUsers();
+        setShowAddModal(false);
+        return { success: true };
+    } catch (error) {
+        console.error("Gagal menambahkan karyawan", error);
+        return { success: false };
+    }
+};
+
 
     const renderCell = React.useCallback((user, columnKey) => {
         const cellValue = user[columnKey];
@@ -271,7 +286,7 @@ export default function EmployeeList() {
                     <Input
                         isClearable
                         className="w-full sm:max-w-[44%]"
-                        placeholder="Cari berdasar nama..."
+                        placeholder="Cari berdasarkan nama..."
                         startContent={
                             <MagnifyingGlassIcon className="w-[1rem]" />
                         }
@@ -445,7 +460,16 @@ export default function EmployeeList() {
                         </TableColumn>
                     )}
                 </TableHeader>
-                <TableBody emptyContent={"No users found"} items={sortedItems}>
+                <TableBody
+                    emptyContent={"No users found"}
+                    isLoading={isLoading}
+                    loadingContent={
+                        <div className="w-full py-10 flex justify-center">
+                            <Spinner />
+                        </div>
+                    }
+                    items={sortedItems}
+                >
                     {(item) => (
                         <TableRow key={item.nik}>
                             {(columnKey) => (
@@ -459,7 +483,7 @@ export default function EmployeeList() {
             </Table>
             <Modal show={showAddModal} onClose={() => setShowAddModal(false)}>
                 <AddEmployee
-                    onSubmit={handleSubmit}
+                    onSubmit={handleAddEmployee}
                     onCancel={() => setShowAddModal(false)}
                 />
             </Modal>

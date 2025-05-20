@@ -1,26 +1,39 @@
-// AddEmployeeForm.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import TextInput from "@/Components/UI/TextInput";
 import PrimaryButton from "@/Components/UI/PrimaryButton";
-import { Select, SelectItem } from "@heroui/react";
-import InputError from "@/Components/UI/InputError"; // import komponen InputError
 import SecondaryButton from "@/Components/UI/SecondaryButton";
+import InputError from "@/Components/UI/InputError";
+import { Input, Select, SelectItem } from "@heroui/react";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { toast } from "react-hot-toast";
 
 const initialForm = {
     name: "",
     nik: "",
-    birth_date: "",
+    date_of_birth: "",
     gender: "",
     email: "",
     phone: "",
     address: "",
-    position: "",
+    role_id: "",
+    place_of_birth: "",
+    password: "",
+    password_confirmation: "",
 };
 
 const AddEmployeeForm = ({ onSubmit, onCancel }) => {
     const [step, setStep] = useState(1);
     const [form, setForm] = useState(initialForm);
     const [errors, setErrors] = useState({});
+    const [roles, setRoles] = useState([]);
+    const [loadingRoles, setLoadingRoles] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
+    const [photo, setPhoto] = useState(null);
+    const [position, setPosition] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showPasswordConfirmation, setShowPasswordConfirmation] =
+        useState(false);
 
     const genderOptions = [
         { uid: "male", label: "Laki-laki" },
@@ -28,23 +41,45 @@ const AddEmployeeForm = ({ onSubmit, onCancel }) => {
         { uid: "other", label: "Lainnya" },
     ];
 
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                const response = await axios.get("/api/roles");
+                setRoles(response.data);
+                setFetchError(null);
+            } catch (error) {
+                setFetchError("Gagal memuat role");
+            } finally {
+                setLoadingRoles(false);
+            }
+        };
+
+        fetchRoles();
+    }, []);
+
     const validateStep = () => {
         const newErrors = {};
         if (step === 1) {
             if (!form.name) newErrors.name = "Nama wajib diisi";
             if (!form.nik) newErrors.nik = "NIK wajib diisi";
-            if (!form.birth_date) newErrors.birth_date = "Tanggal lahir wajib diisi";
+            if (!form.place_of_birth)
+                newErrors.place_of_birth = "Tempat lahir wajib diisi";
+            if (!form.date_of_birth)
+                newErrors.date_of_birth = "Tanggal lahir wajib diisi";
             if (!form.gender) newErrors.gender = "Jenis kelamin wajib diisi";
-             setErrors(newErrors);
-  console.log("form:", form);
-  console.log("errors:", newErrors);
-  return Object.keys(newErrors).length === 0;
         } else if (step === 2) {
             if (!form.email) newErrors.email = "Email wajib diisi";
             if (!form.phone) newErrors.phone = "Nomor HP wajib diisi";
-        } else if (step === 3) {
             if (!form.address) newErrors.address = "Alamat wajib diisi";
-            if (!form.position) newErrors.position = "Jabatan wajib diisi";
+        } else if (step === 3) {
+            if (!form.role_id) newErrors.role_id = "Role wajib dipilih";
+            if (!form.password) newErrors.password = "Password wajib diisi";
+            if (!form.password_confirmation)
+                newErrors.password_confirmation =
+                    "Konfirmasi password wajib diisi";
+            if (form.password !== form.password_confirmation) {
+                newErrors.password_confirmation = "Konfirmasi tidak cocok";
+            }
         }
 
         setErrors(newErrors);
@@ -52,37 +87,48 @@ const AddEmployeeForm = ({ onSubmit, onCancel }) => {
     };
 
     const handleNext = () => {
-        if (validateStep()) setStep(step + 1);
+        if (validateStep()) setStep((prev) => prev + 1);
     };
 
-    const handlePrev = () => setStep(step - 1);
+    const handlePrev = () => setStep((prev) => prev - 1);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
-    const onGenderChange = (value) => {
-        if (typeof value === "string") {
-            setForm((prev) => ({ ...prev, gender: value }));
-        } else if (Array.isArray(value)) {
-            setForm((prev) => ({ ...prev, gender: value[0] }));
-        } else if (value && typeof value === "object") {
-            if ("uid" in value) {
-                setForm((prev) => ({ ...prev, gender: value.uid }));
-            } else {
-                setForm((prev) => ({ ...prev, gender: JSON.stringify(value) }));
-            }
-        }
+    const handleGenderChange = (selectedKeys) => {
+        setForm((prev) => ({ ...prev, gender: Array.from(selectedKeys)[0] }));
     };
 
-    const handleFinish = () => {
-        if (validateStep()) {
-            onSubmit(form);
-            setForm(initialForm);
-            setStep(1);
-        }
+    const handleRoleChange = (selectedKeys) => {
+        setForm((prev) => ({ ...prev, role_id: Array.from(selectedKeys)[0] }));
     };
+
+    const handleFinish = async () => {
+    if (!validateStep()) return;
+
+    const data = {
+        ...form,
+        role_id: parseInt(form.role_id),
+        position,
+        photo,
+    };
+
+    const result = await onSubmit(data);
+
+    if (result?.success) {
+        toast.success("Karyawan berhasil ditambahkan");
+        setForm(initialForm);
+        setPosition("");
+        setPhoto(null);
+        setStep(1);
+        onCancel();
+    } else {
+        toast.error("Gagal menyimpan data");
+    }
+};
+
 
     return (
         <div className="p-6">
@@ -97,8 +143,7 @@ const AddEmployeeForm = ({ onSubmit, onCancel }) => {
                         name="name"
                         value={form.name}
                         onChange={handleChange}
-                        error={errors.name}
-                        type="text" 
+                        isRequired
                     />
                     <InputError message={errors.name} />
 
@@ -107,32 +152,41 @@ const AddEmployeeForm = ({ onSubmit, onCancel }) => {
                         name="nik"
                         value={form.nik}
                         onChange={handleChange}
-                        error={errors.nik}
                         type="number"
-                        minLength="0"
-                        maxLength="16"
+                        isRequired
                     />
                     <InputError message={errors.nik} />
 
                     <TextInput
-                        type="date"
-                        label="Tanggal Lahir"
-                        name="birth_date"
-                        value={form.birth_date}
+                        label="Tempat Lahir"
+                        name="place_of_birth"
+                        value={form.place_of_birth}
                         onChange={handleChange}
-                        error={errors.birth_date}
+                        isRequired
                     />
-                    <InputError message={errors.birth_date} />
+                    <InputError message={errors.place_of_birth} />
+
+                    <TextInput
+                        label="Tanggal Lahir"
+                        name="date_of_birth"
+                        value={form.date_of_birth}
+                        onChange={handleChange}
+                        type="date"
+                        isRequired
+                    />
+                    <InputError message={errors.date_of_birth} />
 
                     <Select
                         items={genderOptions}
                         label="Jenis Kelamin"
                         placeholder="Pilih jenis kelamin"
                         selectedKey={form.gender}
-                        onSelectionChange={onGenderChange}
+                        onSelectionChange={handleGenderChange}
                     >
                         {(gender) => (
-                            <SelectItem key={gender.uid}>{gender.label}</SelectItem>
+                            <SelectItem key={gender.uid}>
+                                {gender.label}
+                            </SelectItem>
                         )}
                     </Select>
                     <InputError message={errors.gender} />
@@ -146,7 +200,7 @@ const AddEmployeeForm = ({ onSubmit, onCancel }) => {
                         name="email"
                         value={form.email}
                         onChange={handleChange}
-                        error={errors.email}
+                        isRequired
                     />
                     <InputError message={errors.email} />
 
@@ -155,31 +209,129 @@ const AddEmployeeForm = ({ onSubmit, onCancel }) => {
                         name="phone"
                         value={form.phone}
                         onChange={handleChange}
-                        error={errors.phone}
+                        isRequired
                     />
                     <InputError message={errors.phone} />
-                </div>
-            )}
 
-            {step === 3 && (
-                <div className="space-y-4">
                     <TextInput
                         label="Alamat"
                         name="address"
                         value={form.address}
                         onChange={handleChange}
-                        error={errors.address}
+                        isRequired
                     />
                     <InputError message={errors.address} />
 
                     <TextInput
-                        label="Jabatan"
+                        label="Posisi"
                         name="position"
-                        value={form.position}
-                        onChange={handleChange}
-                        error={errors.position}
+                        value={position}
+                        onChange={(e) => setPosition(e.target.value)}
                     />
-                    <InputError message={errors.position} />
+                </div>
+            )}
+
+            {step === 3 && (
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Foto Karyawan (Opsional)
+                        </label>
+                        {photo && (
+                            <div className="mb-2">
+                                <img
+                                    src={URL.createObjectURL(photo)}
+                                    alt="Preview"
+                                    className="h-24 w-24 object-cover rounded"
+                                />
+                                <button
+                                    type="button"
+                                    className="text-xs text-red-500 hover:underline mt-1"
+                                    onClick={() => setPhoto(null)}
+                                >
+                                    Hapus Foto
+                                </button>
+                            </div>
+                        )}
+                        <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setPhoto(e.target.files[0])}
+                        />
+                    </div>
+
+                    {loadingRoles ? (
+                        <p className="text-sm text-gray-500">Memuat role...</p>
+                    ) : fetchError ? (
+                        <p className="text-sm text-red-500">{fetchError}</p>
+                    ) : (
+                        <Select
+                            items={roles}
+                            label="Role"
+                            placeholder="Pilih role"
+                            selectedKey={form.role_id}
+                            onSelectionChange={handleRoleChange}
+                        >
+                            {(role) => (
+                                <SelectItem key={role.id}>
+                                    {role.role_name}
+                                </SelectItem>
+                            )}
+                        </Select>
+                    )}
+                    <InputError message={errors.role_id} />
+
+                    {/* Password input */}
+                    <div className="relative">
+                        <TextInput
+                            label="Password"
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            value={form.password}
+                            onChange={handleChange}
+                            isRequired
+                        />
+                        <button
+                            type="button"
+                            className="absolute right-3 top-9 text-gray-500"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                        >
+                            {showPassword ? (
+                                <EyeSlashIcon className="w-5 h-5" />
+                            ) : (
+                                <EyeIcon className="w-5 h-5" />
+                            )}
+                        </button>
+                        <InputError message={errors.password} />
+                    </div>
+
+                    {/* Confirm password */}
+                    <div className="relative">
+                        <TextInput
+                            label="Konfirmasi Password"
+                            name="password_confirmation"
+                            type={
+                                showPasswordConfirmation ? "text" : "password"
+                            }
+                            value={form.password_confirmation}
+                            onChange={handleChange}
+                            isRequired
+                        />
+                        <button
+                            type="button"
+                            className="absolute right-3 top-9 text-gray-500"
+                            onClick={() =>
+                                setShowPasswordConfirmation((prev) => !prev)
+                            }
+                        >
+                            {showPasswordConfirmation ? (
+                                <EyeSlashIcon className="w-5 h-5" />
+                            ) : (
+                                <EyeIcon className="w-5 h-5" />
+                            )}
+                        </button>
+                        <InputError message={errors.password_confirmation} />
+                    </div>
                 </div>
             )}
 
@@ -194,16 +346,18 @@ const AddEmployeeForm = ({ onSubmit, onCancel }) => {
                 )}
                 <div className="ml-auto flex gap-2">
                     {onCancel && (
-                        <SecondaryButton
-                            onClick={onCancel}
-                        >
+                        <SecondaryButton onClick={onCancel}>
                             Batal
                         </SecondaryButton>
                     )}
                     {step < 3 ? (
-                        <PrimaryButton onClick={handleNext}>Lanjut</PrimaryButton>
+                        <PrimaryButton onClick={handleNext}>
+                            Lanjut
+                        </PrimaryButton>
                     ) : (
-                        <PrimaryButton onClick={handleFinish}>Simpan</PrimaryButton>
+                        <PrimaryButton onClick={handleFinish}>
+                            Simpan
+                        </PrimaryButton>
                     )}
                 </div>
             </div>

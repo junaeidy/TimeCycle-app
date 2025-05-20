@@ -2,10 +2,10 @@
 
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Foundation\Application;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AppSettingController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\AppSettingController;
+use App\Http\Controllers\Auth\RegisteredUserController;
 
 Route::get('/', function () {
     return redirect()->route('login');
