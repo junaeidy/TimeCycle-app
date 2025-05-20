@@ -118,14 +118,12 @@ const AddEmployeeForm = ({ onSubmit, onCancel }) => {
     const result = await onSubmit(data);
 
     if (result?.success) {
-        toast.success("Karyawan berhasil ditambahkan");
         setForm(initialForm);
         setPosition("");
         setPhoto(null);
         setStep(1);
         onCancel();
     } else {
-        toast.error("Gagal menyimpan data");
     }
 };
 

@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class EmployeeController extends Controller
 {
@@ -61,5 +62,41 @@ class EmployeeController extends Controller
         $user->save();
 
         return response()->json(['message' => 'Karyawan berhasil ditambahkan'], 201);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'position' => 'nullable|string|max:100',
+            'role_id' => 'required|exists:roles,id',
+        ]);
+
+        if ($request->hasFile('profile_photo')) {
+            if ($user->profile_photo_path) {
+                Storage::delete('public/' . $user->profile_photo_path);
+            }
+            $path = $request->file('profile_photo')->store('profile-photos', 'public');
+            $user->profile_photo_path = $path;
+        }
+
+        if ($request->boolean('remove_photo')) {
+            if ($user->profile_photo_path) {
+                Storage::delete('public/' . $user->profile_photo_path);
+                $user->profile_photo_path = null;
+            }
+        }
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Data karyawan berhasil diperbarui.',
+            'data' => $user->load('role'),
+        ]);
     }
 }

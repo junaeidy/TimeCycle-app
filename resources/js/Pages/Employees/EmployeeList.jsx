@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
     Table,
     TableHeader,
@@ -6,444 +6,150 @@ import {
     TableBody,
     TableRow,
     TableCell,
-    Input,
-    Button,
-    DropdownTrigger,
-    Dropdown,
-    DropdownMenu,
-    DropdownItem,
     Chip,
     User,
-    Pagination,
     Spinner,
+    Pagination,
 } from "@heroui/react";
-import {
-    MagnifyingGlassIcon,
-    EllipsisVerticalIcon,
-} from "@heroicons/react/20/solid";
-import { ChevronDown, Plus } from "lucide-react";
-import AddEmployee from "./AddEmployee";
-import Modal from "@/Components/UI/Modal";
-import toast from "react-hot-toast";
+import useEmployees from "@/hooks/useEmployees";
+import { columns, statusColorMap } from "@/utils/employee";
+import EmployeeActions from "@/Components/Employee/EmployeeActions";
+import EmployeeTableTopContent from "@/Components/Employee/EmployeeTableTopContent";
+import AddEmployeeModal from "@/Components/Employee/AddEmployeeModal";
 import axios from "axios";
-
-export const columns = [
-    { name: "NIK", uid: "nik", sortable: true },
-    { name: "NAME", uid: "name", sortable: true },
-    { name: "AGE", uid: "age", sortable: true },
-    { name: "ROLE", uid: "role", sortable: true },
-    { name: "TEAM", uid: "team" },
-    { name: "EMAIL", uid: "email" },
-    { name: "STATUS", uid: "status", sortable: true },
-    { name: "ACTIONS", uid: "actions" },
-];
-
-export const statusOptions = [
-    { name: "Active", uid: "active" },
-    { name: "Paused", uid: "paused" },
-    { name: "Leave", uid: "leave" },
-];
-
-export function capitalize(s) {
-    return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
-}
-
-const statusColorMap = {
-    active: "success",
-    paused: "danger",
-    leave: "warning",
-};
-
-const INITIAL_VISIBLE_COLUMNS = ["name", "role", "status", "actions"];
+import toast from "react-hot-toast";
 
 export default function EmployeeList() {
-    const [users, setUsers] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [filterValue, setFilterValue] = React.useState("");
-    const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
-    const [visibleColumns, setVisibleColumns] = React.useState(
-        new Set(INITIAL_VISIBLE_COLUMNS)
-    );
-    const [statusFilter, setStatusFilter] = React.useState("all");
-    const [rowsPerPage, setRowsPerPage] = React.useState(5);
-    const [sortDescriptor, setSortDescriptor] = React.useState({
-        column: "age",
-        direction: "ascending",
-    });
-    const [page, setPage] = React.useState(1);
     const [showAddModal, setShowAddModal] = useState(false);
+    const {
+        users,
+        setUsers,
+        isLoading,
+        filterValue,
+        setFilterValue,
+        selectedKeys,
+        setSelectedKeys,
+        visibleColumns,
+        setVisibleColumns,
+        statusFilter,
+        setStatusFilter,
+        rowsPerPage,
+        setRowsPerPage,
+        sortDescriptor,
+        setSortDescriptor,
+        page,
+        setPage,
+        fetchUsers,
+        sortedItems,
+        pages,
+    } = useEmployees();
 
-    const hasSearchFilter = Boolean(filterValue);
-
-    const headerColumns = React.useMemo(() => {
+    const headerColumns = useMemo(() => {
         if (visibleColumns === "all") return columns;
-
-        return columns.filter((column) =>
-            Array.from(visibleColumns).includes(column.uid)
+        return columns.filter((col) =>
+            Array.from(visibleColumns).includes(col.uid)
         );
     }, [visibleColumns]);
 
-    const filteredItems = React.useMemo(() => {
-        let filteredUsers = users ? [...users] : [];
-
-        if (hasSearchFilter) {
-            filteredUsers = filteredUsers.filter((user) =>
-                user.name.toLowerCase().includes(filterValue.toLowerCase())
-            );
-        }
-        if (
-            statusFilter !== "all" &&
-            Array.from(statusFilter).length !== statusOptions.length
-        ) {
-            filteredUsers = filteredUsers.filter((user) =>
-                Array.from(statusFilter).includes(user.status)
-            );
-        }
-
-        return filteredUsers;
-    }, [users, filterValue, statusFilter]);
-
-    const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
-
-    const items = React.useMemo(() => {
-        const start = (page - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-
-        return filteredItems.slice(start, end);
-    }, [page, filteredItems, rowsPerPage]);
-
-    const sortedItems = React.useMemo(() => {
-        return [...items].sort((a, b) => {
-            const first = a[sortDescriptor.column];
-            const second = b[sortDescriptor.column];
-            const cmp = first < second ? -1 : first > second ? 1 : 0;
-
-            return sortDescriptor.direction === "descending" ? -cmp : cmp;
-        });
-    }, [sortDescriptor, items]);
-
-    const fetchUsers = async () => {
-        setIsLoading(true);
-        try {
-            const res = await fetch("/api/employees");
-            const data = await res.json();
-
-            const formatted = data.map((user) => ({
-                nik: user.nik,
-                name: user.name,
-                age: getAge(user.date_of_birth),
-                role: user.role?.role_name ?? "-",
-                team: user.position ?? "-",
-                status: user.is_active ? "active" : "paused",
-                avatar: user.profile_photo_path
-                    ? `/storage/${user.profile_photo_path}`
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          user.name
-                      )}`,
-                email: user.email,
-            }));
-
-            setUsers(formatted);
-        } catch (error) {
-            console.error("Gagal fetch data karyawan", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    React.useEffect(() => {
-        fetchUsers();
-    }, []);
-
-    function getAge(dateString) {
-        const today = new Date();
-        const birthDate = new Date(dateString);
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        return age;
-    }
-
-    const handleAddEmployee = async (data) => {
-    try {
-        const formData = new FormData();
-        Object.entries(data).forEach(([key, value]) => {
-            if (value !== null && value !== "") {
-                formData.append(key, value);
-            }
-        });
-
-        await axios.post("/api/employees", formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
-        });
-
-        fetchUsers();
-        setShowAddModal(false);
-        return { success: true };
-    } catch (error) {
-        console.error("Gagal menambahkan karyawan", error);
-        return { success: false };
-    }
-};
-
-
-    const renderCell = React.useCallback((user, columnKey) => {
-        const cellValue = user[columnKey];
-
+    const renderCell = useCallback((user, columnKey) => {
+        const value = user[columnKey];
         switch (columnKey) {
             case "name":
                 return (
                     <User
-                        avatarProps={{ radius: "lg", src: user.avatar }}
+                        avatarProps={{ src: user.avatar }}
+                        name={value}
                         description={user.email}
-                        name={cellValue}
-                    >
-                        {user.email}
-                    </User>
+                    />
                 );
             case "role":
                 return (
                     <div className="flex flex-col">
-                        <p className="text-bold text-small capitalize">
-                            {cellValue}
-                        </p>
-                        <p className="text-bold text-tiny capitalize text-default-400">
-                            {user.team}
-                        </p>
+                        <span>{value}</span>
+                        <span className="text-default-400">{user.team}</span>
                     </div>
                 );
             case "status":
                 return (
-                    <Chip
-                        className="capitalize"
-                        color={statusColorMap[user.status]}
-                        size="sm"
-                        variant="flat"
-                    >
-                        {cellValue}
+                    <Chip color={statusColorMap[user.status]} variant="flat">
+                        {value}
                     </Chip>
                 );
             case "actions":
-                return (
-                    <div className="relative flex justify-end items-center gap-2">
-                        <Dropdown>
-                            <DropdownTrigger>
-                                <Button isIconOnly size="sm" variant="light">
-                                    <EllipsisVerticalIcon className="text-default-300" />
-                                </Button>
-                            </DropdownTrigger>
-                            <DropdownMenu>
-                                <DropdownItem key="edit">Edit</DropdownItem>
-                                <DropdownItem key="delete">Hapus</DropdownItem>
-                            </DropdownMenu>
-                        </Dropdown>
-                    </div>
-                );
+                return <EmployeeActions />;
             default:
-                return cellValue;
+                return value;
         }
     }, []);
 
-    const onNextPage = React.useCallback(() => {
-        if (page < pages) {
-            setPage(page + 1);
+    const handleAddEmployee = async (data) => {
+        try {
+            const formData = new FormData();
+            Object.entries(data).forEach(([key, value]) => {
+                if (value) formData.append(key, value);
+            });
+
+            const response = await axios.post("/api/employees", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                    Accept: "application/json",
+                },
+            });
+
+            toast.success("Karyawan berhasil ditambahkan");
+
+            await fetchUsers();
+            return { success: true, message: response.data.message };
+        } catch (error) {
+            console.error("Gagal menyimpan data:", error);
+            toast.error("Gagal menyimpan data");
+            return { success: false };
         }
-    }, [page, pages]);
-
-    const onPreviousPage = React.useCallback(() => {
-        if (page > 1) {
-            setPage(page - 1);
-        }
-    }, [page]);
-
-    const onRowsPerPageChange = React.useCallback((e) => {
-        setRowsPerPage(Number(e.target.value));
-        setPage(1);
-    }, []);
-
-    const onSearchChange = React.useCallback((value) => {
-        if (value) {
-            setFilterValue(value);
-            setPage(1);
-        } else {
-            setFilterValue("");
-        }
-    }, []);
-
-    const onClear = React.useCallback(() => {
-        setFilterValue("");
-        setPage(1);
-    }, []);
-
-    const topContent = React.useMemo(() => {
-        return (
-            <div className="flex flex-col gap-4">
-                <div className="flex justify-between gap-3 items-end">
-                    <Input
-                        isClearable
-                        className="w-full sm:max-w-[44%]"
-                        placeholder="Cari berdasarkan nama..."
-                        startContent={
-                            <MagnifyingGlassIcon className="w-[1rem]" />
-                        }
-                        value={filterValue}
-                        onClear={() => onClear()}
-                        onValueChange={onSearchChange}
-                    />
-                    <div className="flex gap-3">
-                        <Dropdown>
-                            <DropdownTrigger className="hidden sm:flex">
-                                <Button
-                                    endContent={
-                                        <ChevronDown className="text-small" />
-                                    }
-                                    variant="flat"
-                                >
-                                    Status
-                                </Button>
-                            </DropdownTrigger>
-                            <DropdownMenu
-                                disallowEmptySelection
-                                aria-label="Table Columns"
-                                closeOnSelect={false}
-                                selectedKeys={statusFilter}
-                                selectionMode="multiple"
-                                onSelectionChange={setStatusFilter}
-                            >
-                                {statusOptions.map((status) => (
-                                    <DropdownItem
-                                        key={status.uid}
-                                        className="capitalize"
-                                    >
-                                        {capitalize(status.name)}
-                                    </DropdownItem>
-                                ))}
-                            </DropdownMenu>
-                        </Dropdown>
-                        <Dropdown>
-                            <DropdownTrigger className="hidden sm:flex">
-                                <Button
-                                    endContent={
-                                        <ChevronDown className="text-small" />
-                                    }
-                                    variant="flat"
-                                >
-                                    Kolom
-                                </Button>
-                            </DropdownTrigger>
-                            <DropdownMenu
-                                disallowEmptySelection
-                                aria-label="Table Columns"
-                                closeOnSelect={false}
-                                selectedKeys={visibleColumns}
-                                selectionMode="multiple"
-                                onSelectionChange={setVisibleColumns}
-                            >
-                                {columns.map((column) => (
-                                    <DropdownItem
-                                        key={column.uid}
-                                        className="capitalize"
-                                    >
-                                        {capitalize(column.name)}
-                                    </DropdownItem>
-                                ))}
-                            </DropdownMenu>
-                        </Dropdown>
-                        <Button
-                            onPress={() => setShowAddModal(true)}
-                            color="primary"
-                            endContent={<Plus />}
-                        >
-                            Tambah
-                        </Button>
-                    </div>
-                </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-default-400 text-small">
-                        Total {users.length} users
-                    </span>
-                    <label className="flex items-center text-default-400 text-small">
-                        Rows per page:
-                        <select
-                            className="bg-transparent outline-none text-default-400 text-small"
-                            onChange={onRowsPerPageChange}
-                        >
-                            <option value="5">5</option>
-                            <option value="10">10</option>
-                            <option value="15">15</option>
-                        </select>
-                    </label>
-                </div>
-            </div>
-        );
-    }, [
-        filterValue,
-        statusFilter,
-        visibleColumns,
-        onRowsPerPageChange,
-        users.length,
-        onSearchChange,
-        hasSearchFilter,
-    ]);
-
-    const bottomContent = React.useMemo(() => {
-        return (
-            <div className="py-2 px-2 flex justify-between items-center">
-                <span className="w-[30%] text-small text-default-400">
-                    {selectedKeys === "all"
-                        ? "All items selected"
-                        : `${selectedKeys.size} of ${filteredItems.length} selected`}
-                </span>
-                <Pagination
-                    isCompact
-                    showControls
-                    showShadow
-                    color="primary"
-                    page={page}
-                    total={pages}
-                    onChange={setPage}
-                />
-                <div className="hidden sm:flex w-[30%] justify-end gap-2">
-                    <Button
-                        isDisabled={pages === 1}
-                        size="sm"
-                        variant="flat"
-                        onPress={onPreviousPage}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        isDisabled={pages === 1}
-                        size="sm"
-                        variant="flat"
-                        onPress={onNextPage}
-                    >
-                        Next
-                    </Button>
-                </div>
-            </div>
-        );
-    }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
+    };
 
     return (
         <>
             <Table
+                aria-label="Employee Table"
                 isHeaderSticky
-                aria-label="Example table with custom cells, pagination and sorting"
-                bottomContent={bottomContent}
-                bottomContentPlacement="outside"
-                classNames={{
-                    wrapper: "max-h-[382px]",
-                }}
+                bottomContent={
+                    <div className="flex justify-between items-center py-2 px-2">
+                        <span className="text-default-400 text-small">
+                            {selectedKeys === "all"
+                                ? "All selected"
+                                : `${selectedKeys.size} of ${users.length} selected`}
+                        </span>
+                        <Pagination
+                            page={page}
+                            total={pages}
+                            onChange={setPage}
+                            isCompact
+                            showControls
+                            showShadow
+                            color="primary"
+                        />
+                    </div>
+                }
+                topContent={
+                    <EmployeeTableTopContent
+                        filterValue={filterValue}
+                        onSearchChange={setFilterValue}
+                        onClear={() => setFilterValue("")}
+                        statusFilter={statusFilter}
+                        setStatusFilter={setStatusFilter}
+                        visibleColumns={visibleColumns}
+                        setVisibleColumns={setVisibleColumns}
+                        setShowAddModal={setShowAddModal}
+                        users={users}
+                        onRowsPerPageChange={(e) => {
+                            setRowsPerPage(Number(e.target.value));
+                            setPage(1);
+                        }}
+                    />
+                }
                 selectedKeys={selectedKeys}
                 selectionMode="multiple"
                 sortDescriptor={sortDescriptor}
-                topContent={topContent}
-                topContentPlacement="outside"
                 onSelectionChange={setSelectedKeys}
                 onSortChange={setSortDescriptor}
             >
@@ -451,24 +157,24 @@ export default function EmployeeList() {
                     {(column) => (
                         <TableColumn
                             key={column.uid}
+                            allowsSorting={column.sortable}
                             align={
                                 column.uid === "actions" ? "center" : "start"
                             }
-                            allowsSorting={column.sortable}
                         >
                             {column.name}
                         </TableColumn>
                     )}
                 </TableHeader>
                 <TableBody
-                    emptyContent={"No users found"}
                     isLoading={isLoading}
+                    items={sortedItems}
+                    emptyContent="No users found"
                     loadingContent={
-                        <div className="w-full py-10 flex justify-center">
+                        <div className="py-10 flex justify-center">
                             <Spinner />
                         </div>
                     }
-                    items={sortedItems}
                 >
                     {(item) => (
                         <TableRow key={item.nik}>
@@ -481,12 +187,11 @@ export default function EmployeeList() {
                     )}
                 </TableBody>
             </Table>
-            <Modal show={showAddModal} onClose={() => setShowAddModal(false)}>
-                <AddEmployee
-                    onSubmit={handleAddEmployee}
-                    onCancel={() => setShowAddModal(false)}
-                />
-            </Modal>
+            <AddEmployeeModal
+                show={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSubmit={handleAddEmployee}
+            />
         </>
     );
 }
