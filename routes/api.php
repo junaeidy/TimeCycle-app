@@ -16,3 +16,4 @@ Route::post('/employees', [EmployeeController::class, 'store']);
 Route::put('/employees/{id}', [EmployeeController::class, 'update']);
 Route::post('/send-password-link', [RegisteredUserController::class, 'sendPasswordLink']);
 Route::patch('/employees/{id}/block', [EmployeeController::class, 'toggleBlock']);
+Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);

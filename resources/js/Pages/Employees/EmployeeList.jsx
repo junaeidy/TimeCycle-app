@@ -27,6 +27,9 @@ export default function EmployeeList() {
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [selectedUserToDelete, setSelectedUserToDelete] = useState(null);
+
     const {
         users,
         setUsers,
@@ -93,8 +96,8 @@ export default function EmployeeList() {
                             setConfirmDialogOpen(true);
                         }}
                         onDelete={() => {
-                            // contoh handle hapus
-                            console.log("Hapus", user.name);
+                            setSelectedUserToDelete(user);
+                            setConfirmDeleteOpen(true);
                         }}
                         isBlocked={user.is_blocked}
                     />
@@ -173,6 +176,17 @@ export default function EmployeeList() {
         } catch (error) {
             console.error("Gagal memblokir/unblokir user:", error);
             toast.error("Terjadi kesalahan saat memproses permintaan.");
+        }
+    };
+
+    const handleDelete = async (user) => {
+        try {
+            await axios.delete(`/api/employees/${user.id}`);
+            toast.success(`Karyawan ${user.name} berhasil dihapus.`);
+            fetchUsers();
+        } catch (error) {
+            console.error("Gagal menghapus user:", error);
+            toast.error("Terjadi kesalahan saat menghapus user.");
         }
     };
 
@@ -281,6 +295,16 @@ export default function EmployeeList() {
                 message={`Apakah Anda yakin ingin ${
                     selectedUser?.is_blocked ? "membuka blokir" : "memblokir"
                 } ${selectedUser?.name}?`}
+            />
+
+            <ConfirmDialog
+                isOpen={confirmDeleteOpen}
+                onClose={() => setConfirmDeleteOpen(false)}
+                onConfirm={() =>
+                    selectedUserToDelete && handleDelete(selectedUserToDelete)
+                }
+                title="Hapus Karyawan"
+                message={`Apakah Anda yakin ingin menghapus ${selectedUserToDelete?.name}? Tindakan ini tidak dapat dibatalkan.`}
             />
         </>
     );

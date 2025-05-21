@@ -16,6 +16,7 @@ const initialForm = {
     email: "",
     phone: "",
     address: "",
+    position: "",
     role_id: "",
     place_of_birth: "",
     password: "",
@@ -71,6 +72,7 @@ const AddEmployeeForm = ({ onSubmit, onCancel }) => {
             if (!form.email) newErrors.email = "Email wajib diisi";
             if (!form.phone) newErrors.phone = "Nomor HP wajib diisi";
             if (!form.address) newErrors.address = "Alamat wajib diisi";
+            if (!form.position) newErrors.position = "Posisi wajib diisi";
         } else if (step === 3) {
             if (!form.role_id) newErrors.role_id = "Role wajib dipilih";
             if (!form.password) newErrors.password = "Password wajib diisi";
@@ -223,9 +225,12 @@ const AddEmployeeForm = ({ onSubmit, onCancel }) => {
                     <TextInput
                         label="Posisi"
                         name="position"
-                        value={position}
-                        onChange={(e) => setPosition(e.target.value)}
+                        value={form.position}
+                        onChange={handleChange}
+                        isRequired
                     />
+
+                    <InputError message={errors.position} />
                 </div>
             )}
 
