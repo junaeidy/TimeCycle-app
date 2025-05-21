@@ -19,11 +19,14 @@ import AddEmployeeModal from "@/Components/Employee/AddEmployeeModal";
 import EditEmployeeModal from "@/Components/Employee/EditEmployeeModal";
 import axios from "axios";
 import toast from "react-hot-toast";
+import ConfirmDialog from "@/Components/ConfirmDialog";
 
 export default function EmployeeList() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
     const {
         users,
         setUsers,
@@ -86,13 +89,14 @@ export default function EmployeeList() {
                             setShowEditModal(true);
                         }}
                         onBlock={() => {
-                            // contoh handle blokir
-                            console.log("Blokir", user.name);
+                            setSelectedUser(user);
+                            setConfirmDialogOpen(true);
                         }}
                         onDelete={() => {
                             // contoh handle hapus
                             console.log("Hapus", user.name);
                         }}
+                        isBlocked={user.is_blocked}
                     />
                 );
 
@@ -145,6 +149,30 @@ export default function EmployeeList() {
             console.error(err);
             toast.error("Gagal memperbarui data");
             return { success: false };
+        }
+    };
+
+    const handleToggleBlock = async (user) => {
+        try {
+            const response = await axios.patch(
+                `/api/employees/${user.id}/block`
+            );
+            const updatedUser = response.data.user;
+
+            if (updatedUser.is_blocked) {
+                toast.success(
+                    `Karyawan ${updatedUser.name} berhasil diblokir.`
+                );
+            } else {
+                toast.success(
+                    `Karyawan ${updatedUser.name} berhasil dibuka blokirnya.`
+                );
+            }
+
+            fetchUsers();
+        } catch (error) {
+            console.error("Gagal memblokir/unblokir user:", error);
+            toast.error("Terjadi kesalahan saat memproses permintaan.");
         }
     };
 
@@ -241,6 +269,18 @@ export default function EmployeeList() {
                 }}
                 employee={selectedEmployee}
                 onSubmit={handleUpdateEmployee}
+            />
+
+            <ConfirmDialog
+                isOpen={confirmDialogOpen}
+                onClose={() => setConfirmDialogOpen(false)}
+                onConfirm={() =>
+                    selectedUser && handleToggleBlock(selectedUser)
+                }
+                title="Konfirmasi Aksi"
+                message={`Apakah Anda yakin ingin ${
+                    selectedUser?.is_blocked ? "membuka blokir" : "memblokir"
+                } ${selectedUser?.name}?`}
             />
         </>
     );

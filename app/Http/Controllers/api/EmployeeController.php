@@ -99,4 +99,23 @@ class EmployeeController extends Controller
             'data' => $user->load('role'),
         ]);
     }
+
+    public function toggleBlock($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not found.'
+            ], 404);
+        }
+
+        $user->is_blocked = !$user->is_blocked;
+        $user->save();
+
+        return response()->json([
+            'message' => $user->is_blocked ? 'User has been blocked.' : 'User has been unblocked.',
+            'user' => $user
+        ]);
+    }
 }

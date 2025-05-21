@@ -40,6 +40,7 @@ export default function useEmployees() {
                 address: user.address,
                 phone: user.phone,
                 position: user.position,
+                is_blocked: user.is_blocked,
             }));
             setUsers(formatted);
         } catch (error) {
