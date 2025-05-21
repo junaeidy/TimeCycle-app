@@ -23,10 +23,12 @@ export default function useEmployees() {
         try {
             const { data } = await axios.get("/api/employees");
             const formatted = data.map((user) => ({
+                id: user.id,
                 nik: user.nik,
                 name: user.name,
                 age: getAge(user.date_of_birth),
                 role: user.role?.role_name ?? "-",
+                role_id: user.role?.id ?? "",
                 team: user.position ?? "-",
                 status: user.is_active ? "active" : "paused",
                 avatar: user.profile_photo_path
@@ -35,6 +37,9 @@ export default function useEmployees() {
                           user.name
                       )}`,
                 email: user.email,
+                address: user.address,
+                phone: user.phone,
+                position: user.position,
             }));
             setUsers(formatted);
         } catch (error) {

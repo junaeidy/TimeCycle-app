@@ -16,11 +16,14 @@ import { columns, statusColorMap } from "@/utils/employee";
 import EmployeeActions from "@/Components/Employee/EmployeeActions";
 import EmployeeTableTopContent from "@/Components/Employee/EmployeeTableTopContent";
 import AddEmployeeModal from "@/Components/Employee/AddEmployeeModal";
+import EditEmployeeModal from "@/Components/Employee/EditEmployeeModal";
 import axios from "axios";
 import toast from "react-hot-toast";
 
 export default function EmployeeList() {
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
     const {
         users,
         setUsers,
@@ -76,7 +79,23 @@ export default function EmployeeList() {
                     </Chip>
                 );
             case "actions":
-                return <EmployeeActions />;
+                return (
+                    <EmployeeActions
+                        onEdit={() => {
+                            setSelectedEmployee(user);
+                            setShowEditModal(true);
+                        }}
+                        onBlock={() => {
+                            // contoh handle blokir
+                            console.log("Blokir", user.name);
+                        }}
+                        onDelete={() => {
+                            // contoh handle hapus
+                            console.log("Hapus", user.name);
+                        }}
+                    />
+                );
+
             default:
                 return value;
         }
@@ -103,6 +122,28 @@ export default function EmployeeList() {
         } catch (error) {
             console.error("Gagal menyimpan data:", error);
             toast.error("Gagal menyimpan data");
+            return { success: false };
+        }
+    };
+
+    const handleUpdateEmployee = async ({ id, formData }) => {
+        try {
+            const res = await axios.post(
+                `/api/employees/${id}?_method=PUT`,
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+            toast.success("Karyawan berhasil diperbarui");
+
+            await fetchUsers();
+            return { success: true, data: res.data };
+        } catch (err) {
+            console.error(err);
+            toast.error("Gagal memperbarui data");
             return { success: false };
         }
     };
@@ -191,6 +232,15 @@ export default function EmployeeList() {
                 show={showAddModal}
                 onClose={() => setShowAddModal(false)}
                 onSubmit={handleAddEmployee}
+            />
+            <EditEmployeeModal
+                show={showEditModal}
+                onClose={() => {
+                    setShowEditModal(false);
+                    setSelectedEmployee(null);
+                }}
+                employee={selectedEmployee}
+                onSubmit={handleUpdateEmployee}
             />
         </>
     );
