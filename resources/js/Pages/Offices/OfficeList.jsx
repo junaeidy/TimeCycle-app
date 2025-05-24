@@ -14,6 +14,7 @@ import {
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Tooltip } from "@heroui/react";
 import AddOfficeModal from "@/Components/Office/AddofficeModal";
+import toast from "react-hot-toast";
 
 export const columns = [
     { name: "NAMA LOKASI", uid: "location_name", sortable: true },
@@ -86,7 +87,13 @@ export default function OfficeList() {
     const handleOpen = () => setShowModal(true);
     const handleClose = () => setShowModal(false);
     const handleSubmit = (formData) => {
-        console.log("Kirim ke server:", formData.location_name);
+        if (!formData) {
+            toast.error("Gagal menyimpan kantor.");
+            return;
+        }
+
+        toast.success(`${formData.location_name} berhasil ditambahkan.`);
+        fetchOffices();
         handleClose();
     };
 
