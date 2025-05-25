@@ -12,6 +12,7 @@ import "leaflet/dist/leaflet.css";
 import TextInput from "@/Components/UI/TextInput";
 import PrimaryButton from "@/Components/UI/PrimaryButton";
 import { toast } from "react-hot-toast";
+import axios from "axios";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -38,15 +39,27 @@ function MapRefresher() {
     return null;
 }
 
-export default function AddOffice({ onSubmit, onCancel }) {
-    const [locationName, setLocationName] = useState("");
-    const [position, setPosition] = useState(null);
-    const [radius, setRadius] = useState(80);
-    const [isLoading, setIsLoading] = useState(true);
+export default function AddOffice({
+    mode = "add",
+    initialData = {},
+    onSubmit,
+    onCancel,
+}) {
+    const [locationName, setLocationName] = useState(
+        initialData?.location_name || ""
+    );
+    const [position, setPosition] = useState(
+        initialData.latitude && initialData.longitude
+            ? [initialData.latitude, initialData.longitude]
+            : null
+    );
+    const [radius, setRadius] = useState(initialData.radius_meter || 80);
+    const [isLoading, setIsLoading] = useState(mode === "add");
     const [geoError, setGeoError] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        if (navigator.geolocation) {
+        if (mode === "add" && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     setPosition([pos.coords.latitude, pos.coords.longitude]);
@@ -59,15 +72,12 @@ export default function AddOffice({ onSubmit, onCancel }) {
                 }
             );
         } else {
-            console.warn("Browser tidak mendukung geolokasi.");
             setIsLoading(false);
-            setGeoError(true);
         }
-    }, []);
+    }, [mode]);
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-        setIsLoading(true);
         if (!position) return;
 
         const data = {
@@ -77,20 +87,14 @@ export default function AddOffice({ onSubmit, onCancel }) {
             radius_meter: Number(radius),
         };
 
-        try {
-            await axios.post("/offices", data);
-            onSubmit?.(data);
-        } catch (error) {
-            console.error("Gagal menyimpan kantor:", error);
-            toast.error("Gagal menyimpan kantor");
-        }
+        onSubmit?.(data);
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 p-6">
             <div>
                 <h2 className="text-xl font-semibold text-gray-800">
-                    Tambah Kantor Baru
+                    {mode === "add" ? "Tambah Kantor Baru" : "Edit Kantor"}
                 </h2>
             </div>
 
@@ -126,7 +130,7 @@ export default function AddOffice({ onSubmit, onCancel }) {
 
             <div>
                 <label className="block font-medium text-gray-700 mb-2">
-                    Pilih Lokasi di Peta
+                    Lokasi Kantor (Map)
                 </label>
                 <div className="rounded-lg overflow-hidden shadow border border-gray-200 h-64">
                     {isLoading ? (
@@ -150,18 +154,10 @@ export default function AddOffice({ onSubmit, onCancel }) {
                                 attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
-                            <LocationPicker setPosition={setPosition} />
-                            <Marker
-                                position={position}
-                                draggable
-                                eventHandlers={{
-                                    dragend: (e) => {
-                                        const { lat, lng } =
-                                            e.target.getLatLng();
-                                        setPosition([lat, lng]);
-                                    },
-                                }}
-                            />
+                            {mode === "add" && (
+                                <LocationPicker setPosition={setPosition} />
+                            )}
+                            <Marker position={position} />
                             <Circle center={position} radius={Number(radius)} />
                         </MapContainer>
                     )}
@@ -176,8 +172,15 @@ export default function AddOffice({ onSubmit, onCancel }) {
                 >
                     Batal
                 </button>
-                <PrimaryButton type="submit" disabled={!position || isLoading}>
-                    {isLoading ? "Memuat..." : "Simpan Kantor"}
+                <PrimaryButton
+                    type="submit"
+                    disabled={!position || isSubmitting}
+                >
+                    {isSubmitting
+                        ? "Menyimpan..."
+                        : mode === "add"
+                        ? "Simpan Kantor"
+                        : "Update Kantor"}
                 </PrimaryButton>
             </div>
         </form>

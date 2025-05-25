@@ -46,6 +46,9 @@ export default function OfficeList() {
     const [offices, setOffices] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [editMode, setEditMode] = useState(false);
+const [selectedOffice, setSelectedOffice] = useState(null);
+
 
     const hasSearchFilter = Boolean(filterValue);
 
@@ -85,17 +88,33 @@ export default function OfficeList() {
     }, [sortDescriptor, items]);
 
     const handleOpen = () => setShowModal(true);
-    const handleClose = () => setShowModal(false);
-    const handleSubmit = (formData) => {
-        if (!formData) {
-            toast.error("Gagal menyimpan kantor.");
-            return;
-        }
+    const handleClose = () => {
+    setShowModal(false);
+    setEditMode(false);
+    setSelectedOffice(null);
+};
 
-        toast.success(`${formData.location_name} berhasil ditambahkan.`);
+    const handleSubmit = async (formData) => {
+    if (!formData) {
+        toast.error("Gagal menyimpan kantor.");
+        return;
+    }
+
+    try {
+        if (editMode) {
+            await axios.put(`/api/offices/${selectedOffice.id}`, formData);
+            toast.success(`${formData.location_name} berhasil diperbarui.`);
+        } else {
+            await axios.post("/api/offices", formData);
+            toast.success(`${formData.location_name} berhasil ditambahkan.`);
+        }
         fetchOffices();
         handleClose();
-    };
+    } catch (error) {
+        toast.error("Terjadi kesalahan saat menyimpan data.");
+    }
+};
+
 
     const fetchOffices = async () => {
         try {
@@ -120,6 +139,14 @@ export default function OfficeList() {
         fetchOffices();
     }, []);
 
+    const handleEdit = (office) => {
+    setSelectedOffice(office);
+    setEditMode(true);
+    setShowModal(true);
+};
+
+
+
     const renderCell = (item, columnKey) => {
         const cellValue = item[columnKey];
         switch (columnKey) {
@@ -127,8 +154,11 @@ export default function OfficeList() {
                 return (
                     <div className="relative flex justify-center items-center gap-2">
                         <Tooltip content="Edit">
-                            <Pencil className="w-5 h-5 text-gray-500 cursor-pointer" />
-                        </Tooltip>
+    <Pencil
+        className="w-5 h-5 text-gray-500 cursor-pointer"
+        onClick={() => handleEdit(item)}
+    />
+</Tooltip>
 
                         <Tooltip content="Delete" color="danger">
                             <Trash2 className="w-5 h-5 text-red-500 cursor-pointer" />
@@ -215,11 +245,14 @@ export default function OfficeList() {
                     </Table>
                 </div>
             </div>
-            <AddOfficeModal
-                show={showModal}
-                onClose={handleClose}
-                onSubmit={handleSubmit}
-            />
+<AddOfficeModal
+    show={showModal}
+    onClose={handleClose}
+    onSubmit={handleSubmit}
+    mode={editMode ? "edit" : "add"}
+    initialData={selectedOffice || {}}
+/>
+
         </>
     );
 }
