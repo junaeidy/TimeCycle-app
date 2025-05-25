@@ -44,4 +44,12 @@ class OfficeController extends Controller
 
         return response()->json($office);
     }
+
+    public function destroy($id)
+    {
+        $office = Office::findOrFail($id);
+        $office->delete();
+
+        return response()->json("Office deleted successfully.", 200);
+    }
 }

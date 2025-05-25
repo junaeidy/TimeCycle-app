@@ -21,3 +21,4 @@ Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
 Route::get('/offices', [OfficeController::class, 'index']);
 Route::post('/offices', [OfficeController::class, 'store']);
 Route::put('/offices/{id}', [OfficeController::class, 'update']);
+Route::delete('/offices/{id}', [OfficeController::class, 'destroy']);

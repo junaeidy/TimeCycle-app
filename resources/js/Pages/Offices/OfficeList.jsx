@@ -15,6 +15,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Tooltip } from "@heroui/react";
 import AddOfficeModal from "@/Components/Office/AddofficeModal";
 import toast from "react-hot-toast";
+import ConfirmDialog from "@/Components/ConfirmDialog";
 
 export const columns = [
     { name: "NAMA LOKASI", uid: "location_name", sortable: true },
@@ -47,8 +48,7 @@ export default function OfficeList() {
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [editMode, setEditMode] = useState(false);
-const [selectedOffice, setSelectedOffice] = useState(null);
-
+    const [selectedOffice, setSelectedOffice] = useState(null);
 
     const hasSearchFilter = Boolean(filterValue);
 
@@ -86,35 +86,38 @@ const [selectedOffice, setSelectedOffice] = useState(null);
             return sortDescriptor.direction === "descending" ? -cmp : cmp;
         });
     }, [sortDescriptor, items]);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [officeToDelete, setOfficeToDelete] = useState(null);
 
     const handleOpen = () => setShowModal(true);
     const handleClose = () => {
-    setShowModal(false);
-    setEditMode(false);
-    setSelectedOffice(null);
-};
+        setShowModal(false);
+        setEditMode(false);
+        setSelectedOffice(null);
+    };
 
     const handleSubmit = async (formData) => {
-    if (!formData) {
-        toast.error("Gagal menyimpan kantor.");
-        return;
-    }
-
-    try {
-        if (editMode) {
-            await axios.put(`/api/offices/${selectedOffice.id}`, formData);
-            toast.success(`${formData.location_name} berhasil diperbarui.`);
-        } else {
-            await axios.post("/api/offices", formData);
-            toast.success(`${formData.location_name} berhasil ditambahkan.`);
+        if (!formData) {
+            toast.error("Gagal menyimpan kantor.");
+            return;
         }
-        fetchOffices();
-        handleClose();
-    } catch (error) {
-        toast.error("Terjadi kesalahan saat menyimpan data.");
-    }
-};
 
+        try {
+            if (editMode) {
+                await axios.put(`/api/offices/${selectedOffice.id}`, formData);
+                toast.success(`${formData.location_name} berhasil diperbarui.`);
+            } else {
+                await axios.post("/api/offices", formData);
+                toast.success(
+                    `${formData.location_name} berhasil ditambahkan.`
+                );
+            }
+            fetchOffices();
+            handleClose();
+        } catch (error) {
+            toast.error("Terjadi kesalahan saat menyimpan data.");
+        }
+    };
 
     const fetchOffices = async () => {
         try {
@@ -140,12 +143,31 @@ const [selectedOffice, setSelectedOffice] = useState(null);
     }, []);
 
     const handleEdit = (office) => {
-    setSelectedOffice(office);
-    setEditMode(true);
-    setShowModal(true);
-};
+        setSelectedOffice(office);
+        setEditMode(true);
+        setShowModal(true);
+    };
 
+    const handleDelete = (office) => {
+        setOfficeToDelete(office);
+        setShowConfirmDialog(true);
+    };
 
+    const confirmDelete = async () => {
+        if (!officeToDelete) return;
+
+        try {
+            await axios.delete(`/api/offices/${officeToDelete.id}`);
+            toast.success(`${officeToDelete.location_name} berhasil dihapus.`);
+            fetchOffices();
+        } catch (error) {
+            console.error("Gagal menghapus kantor:", error);
+            toast.error("Gagal menghapus kantor.");
+        } finally {
+            setShowConfirmDialog(false);
+            setOfficeToDelete(null);
+        }
+    };
 
     const renderCell = (item, columnKey) => {
         const cellValue = item[columnKey];
@@ -154,14 +176,17 @@ const [selectedOffice, setSelectedOffice] = useState(null);
                 return (
                     <div className="relative flex justify-center items-center gap-2">
                         <Tooltip content="Edit">
-    <Pencil
-        className="w-5 h-5 text-gray-500 cursor-pointer"
-        onClick={() => handleEdit(item)}
-    />
-</Tooltip>
+                            <Pencil
+                                className="w-5 h-5 text-gray-500 cursor-pointer"
+                                onClick={() => handleEdit(item)}
+                            />
+                        </Tooltip>
 
                         <Tooltip content="Delete" color="danger">
-                            <Trash2 className="w-5 h-5 text-red-500 cursor-pointer" />
+                            <Trash2
+                                className="w-5 h-5 text-red-500 cursor-pointer"
+                                onClick={() => handleDelete(item)}
+                            />
                         </Tooltip>
                     </div>
                 );
@@ -245,14 +270,21 @@ const [selectedOffice, setSelectedOffice] = useState(null);
                     </Table>
                 </div>
             </div>
-<AddOfficeModal
-    show={showModal}
-    onClose={handleClose}
-    onSubmit={handleSubmit}
-    mode={editMode ? "edit" : "add"}
-    initialData={selectedOffice || {}}
-/>
+            <AddOfficeModal
+                show={showModal}
+                onClose={handleClose}
+                onSubmit={handleSubmit}
+                mode={editMode ? "edit" : "add"}
+                initialData={selectedOffice || {}}
+            />
 
+            <ConfirmDialog
+                isOpen={showConfirmDialog}
+                onClose={() => setShowConfirmDialog(false)}
+                onConfirm={confirmDelete}
+                title="Hapus Kantor"
+                message={`Apakah Anda yakin ingin menghapus kantor "${officeToDelete?.location_name}"? Tindakan ini tidak dapat dibatalkan.`}
+            />
         </>
     );
 }
