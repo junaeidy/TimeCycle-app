@@ -4,6 +4,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\AppSettingController;
 
@@ -26,6 +27,7 @@ Route::middleware('auth', 'admin')->group(function () {
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
     Route::get('/offices', [OfficeController::class, 'index'])->name('offices.index');
     Route::post('/offices', [OfficeController::class, 'store'])->name('offices.store');
+    Route::get('/divisions', [DivisionController::class, 'index'])->name('divisions.index');
 });
 
 Route::fallback(function () {

@@ -3,8 +3,9 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\api\RoleController;
-use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\OfficeController;
+use App\Http\Controllers\Api\DivisionController;
+use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 
 Route::get('/user', function (Request $request) {
@@ -22,3 +23,5 @@ Route::get('/offices', [OfficeController::class, 'index']);
 Route::post('/offices', [OfficeController::class, 'store']);
 Route::put('/offices/{id}', [OfficeController::class, 'update']);
 Route::delete('/offices/{id}', [OfficeController::class, 'destroy']);
+
+Route::apiResource('divisions', DivisionController::class);

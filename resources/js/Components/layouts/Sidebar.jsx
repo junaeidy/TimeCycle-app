@@ -9,11 +9,13 @@ import {
     ArrowRightOnRectangleIcon,
     ClockIcon,
     BuildingOffice2Icon,
+    FolderIcon,
 } from "@heroicons/react/24/solid";
 
 const navItems = [
     { name: "Dashboard", icon: ChartBarIcon, href: route("dashboard") },
     { name: "Kantor", icon: BuildingOffice2Icon, href: route("offices.index") },
+    { name: "Divisi", icon: FolderIcon, href: route("divisions.index") },
     { name: "Absensi", icon: ClockIcon },
     { name: "Laporan", icon: DocumentTextIcon },
     { name: "Jadwal Kerja", icon: CalendarIcon },
